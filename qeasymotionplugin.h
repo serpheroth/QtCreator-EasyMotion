@@ -23,7 +23,6 @@ public:
   ShutdownFlag aboutToShutdown();
 
 private slots:
-  void triggerAction();
 private:
   QEasyMotionHandler* m_handler;
 };
