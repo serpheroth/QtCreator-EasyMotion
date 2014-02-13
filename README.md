@@ -1,4 +1,4 @@
 QEasyMotion
 ===========
 
-A EasyMotion plugin for Qt Creator
+An EasyMotion plugin for Qt Creator
