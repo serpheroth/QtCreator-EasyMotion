@@ -1,5 +1,5 @@
-#include "qeasymotionplugin.h"
-#include "qeasymotionconstants.h"
+#include "easymotionplugin.h"
+#include "easymotionconstants.h"
 
 #include <coreplugin/icore.h>
 #include <coreplugin/icontext.h>
@@ -30,11 +30,11 @@
 #include <QPair>
 #include <algorithm>
 
-using namespace QEasyMotion::Internal;
-using namespace QEasyMotion;
+using namespace EasyMotion::Internal;
+using namespace EasyMotion;
 using namespace Core;
 
-namespace QEasyMotion
+namespace EasyMotion
 {
 template <class Editor>
 QPair<int, int> getFirstAndLastVisiblePosition(Editor* editor)
@@ -228,12 +228,12 @@ private:
 
 #define EDITOR(e) ((m_plainEdit != NULL) ? m_plainEdit->e : m_textEdit->e)
 
-class QEasyMotionHandler : public QObject
+class EasyMotionHandler : public QObject
 {
   Q_OBJECT
 
 public:
-  QEasyMotionHandler(QObject* parent = 0)
+  EasyMotionHandler(QObject* parent = 0)
     : QObject(parent)
     , m_currentEditor(NULL)
     , m_plainEdit(NULL)
@@ -242,7 +242,7 @@ public:
   {
   }
 
-  ~QEasyMotionHandler() {}
+  ~EasyMotionHandler() {}
 
 public slots:
   void easyMotionTriggered(void)
@@ -301,13 +301,12 @@ private:
       } else {
         return false;
       }
-    } else if (event->type() == QEvent::ShortcutOverride) {
+    }  else if (event->type() == QEvent::ShortcutOverride) {
         // Handle ESC key press.
         QKeyEvent *e = static_cast<QKeyEvent*>(event);
         if (e->key() == Qt::Key_Escape)
             return handleKeyPress(e);
     }
-
     return false;
   }
 
@@ -437,24 +436,25 @@ private:
   QPlainTextEdit* m_plainEdit;
   QTextEdit* m_textEdit;
   EasyMotionState m_state;
-  QEasyMotion::EasyMotionTarget m_target;
+  EasyMotion::EasyMotionTarget m_target;
 };
 
-} // namespace QEasyMotion
-QEasyMotionPlugin::QEasyMotionPlugin()
-  : m_handler(new QEasyMotionHandler)
+} // namespace EasyMotion
+
+EasyMotionPlugin::EasyMotionPlugin()
+  : m_handler(new EasyMotionHandler)
 {
   // Create your members
 }
 
-QEasyMotionPlugin::~QEasyMotionPlugin()
+EasyMotionPlugin::~EasyMotionPlugin()
 {
   // Unregister objects from the plugin manager's object pool
   // Delete members
   delete m_handler;
 }
 
-bool QEasyMotionPlugin::initialize(const QStringList &arguments, QString *errorString)
+bool EasyMotionPlugin::initialize(const QStringList &arguments, QString *errorString)
 {
   // Register objects in the plugin manager's object pool
   // Load settings
@@ -472,14 +472,14 @@ bool QEasyMotionPlugin::initialize(const QStringList &arguments, QString *errorS
   return true;
 }
 
-void QEasyMotionPlugin::extensionsInitialized()
+void EasyMotionPlugin::extensionsInitialized()
 {
   // Retrieve objects from the plugin manager's object pool
   // In the extensionsInitialized function, a plugin can be sure that all
   // plugins that depend on it are completely initialized.
 }
 
-ExtensionSystem::IPlugin::ShutdownFlag QEasyMotionPlugin::aboutToShutdown()
+ExtensionSystem::IPlugin::ShutdownFlag EasyMotionPlugin::aboutToShutdown()
 {
   // Save settings
   // Disconnect from signals that are not needed during shutdown
@@ -487,6 +487,7 @@ ExtensionSystem::IPlugin::ShutdownFlag QEasyMotionPlugin::aboutToShutdown()
   return SynchronousShutdown;
 }
 
-#include "qeasymotionplugin.moc"
-Q_EXPORT_PLUGIN2(QEasyMotion, QEasyMotionPlugin)
+#include "easymotionplugin.moc"
+Q_EXPORT_PLUGIN2(EasyMotion, EasyMotionPlugin)
+
 
