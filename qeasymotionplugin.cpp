@@ -301,9 +301,14 @@ private:
       } else {
         return false;
       }
-    } else {
-      return false;
+    } else if (event->type() == QEvent::ShortcutOverride) {
+        // Handle ESC key press.
+        QKeyEvent *e = static_cast<QKeyEvent*>(event);
+        if (e->key() == Qt::Key_Escape)
+            return handleKeyPress(e);
     }
+
+    return false;
   }
 
   bool handleKeyPress(QKeyEvent * e)
