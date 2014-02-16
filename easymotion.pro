@@ -10,13 +10,15 @@ HEADERS += easymotionplugin.h \
 
 # Qt Creator linking
 
+#	DIR=/Users/dj/tmp/qt-creator-opensource-src-3.0.1
+	DIR=/home/dj/test/qt-creator-2.8.1-src
 ## set the QTC_SOURCE environment variable to override the setting here
 QTCREATOR_SOURCES = $$(QTC_SOURCE)
-isEmpty(QTCREATOR_SOURCES):QTCREATOR_SOURCES=/home/dj/qtcreator-3.0.0
+isEmpty(QTCREATOR_SOURCES):QTCREATOR_SOURCES=/home/dj/test/qt-creator-2.8.1-src
 
 ## set the QTC_BUILD environment variable to override the setting here
 IDE_BUILD_TREE = $$(QTC_BUILD)
-isEmpty(IDE_BUILD_TREE):IDE_BUILD_TREE=/home/dj/qtcreator-3.0.0
+isEmpty(IDE_BUILD_TREE):IDE_BUILD_TREE=/home/dj/test/qt-creator-2.8.1-src
 
 ## uncomment to build plugin into user config directory
 ## <localappdata>/plugins/<ideversion>
@@ -26,7 +28,7 @@ isEmpty(IDE_BUILD_TREE):IDE_BUILD_TREE=/home/dj/qtcreator-3.0.0
 ##    "~/Library/Application Support/QtProject/Qt Creator" on Mac
 # USE_USER_DESTDIR = yes
 
-PROVIDER = MyCompany
+PROVIDER = XiaofengWu 
 
 ###### If the plugin can be depended upon by other plugins, this code needs to be outsourced to
 ###### <dirname>_dependencies.pri, where <dirname> is the name of the directory containing the

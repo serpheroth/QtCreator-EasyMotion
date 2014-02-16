@@ -34,11 +34,10 @@ using namespace EasyMotion::Internal;
 using namespace EasyMotion;
 using namespace Core;
 
-namespace EasyMotion
-{
+namespace EasyMotion {
+
 template <class Editor>
-QPair<int, int> getFirstAndLastVisiblePosition(Editor* editor)
-{
+QPair<int, int> getFirstAndLastVisiblePosition(Editor* editor) {
   QTextCursor cursor = editor->textCursor();
   QTextDocument* doc = editor->document();
   int currentLine = doc->findBlock(cursor.position()).blockNumber();
@@ -59,23 +58,41 @@ QPair<int, int> getFirstAndLastVisiblePosition(Editor* editor)
     lastVisibleTextBlock = doc->lastBlock();
   }
   int lastPos = lastVisibleTextBlock.position() + lastVisibleTextBlock.length() - 1;
-  //  qDebug() << firstPos << lastPos << firstVisibleLineNum << lastVisibleLineNum;
   return QPair<int, int>(firstPos, lastPos);
 }
 
-class EasyMotionTarget : public QObject
-{
+class EasyMotionTarget : public QObject {
   Q_OBJECT
 public:
-  EasyMotionTarget(void)
-  {
+  EasyMotionTarget(void) {
     initCode();
     m_targetPos.clear();
   }
 
   template <class QEditor>
-  void setTarget(QEditor* editor, const QChar& target)
-  {
+  void searchTargetFromCurrentLine(QEditor* editor) {
+    m_targetPos.clear();
+    if (editor == NULL) {
+      return;
+    }
+    m_currentGroup = 0;
+    QTextDocument* doc = editor->document();
+    int cursorPos = editor->textCursor().position();
+    QTextBlock currentLineBlock = doc->findBlock(cursorPos);
+    int firstPos = currentLineBlock.position();
+    int lastPos = firstPos + currentLineBlock.length() - 1;
+    for (int offset = 1; cursorPos - offset >= firstPos || cursorPos + offset <= lastPos; offset++) {
+      if (cursorPos + offset <= lastPos) {
+        m_targetPos << (cursorPos + offset);
+      }
+      if (cursorPos - offset >= firstPos) {
+        m_targetPos << (cursorPos - offset);
+      }
+    }
+  }
+
+  template <class QEditor>
+  void searchTargetFromScreen(QEditor* editor, const QChar& target) {
     m_targetPos.clear();
     if (editor == NULL) {
       return;
@@ -83,19 +100,26 @@ public:
     m_currentGroup = 0;
     m_targetChar = target;
     QTextDocument* doc = editor->document();
-    QPair<int, int> visibleRange = getFirstAndLastVisiblePosition(editor);
-    int firstPos = visibleRange.first;
-    int lastVisiblePos = visibleRange.second;
     int cursorPos = editor->textCursor().position();
-    for (int offset = 1; cursorPos - offset >= firstPos || cursorPos + offset <= lastVisiblePos; offset++) {
-      if (cursorPos + offset <= lastVisiblePos) {
+    QPair<int, int> visibleRange = getFirstAndLastVisiblePosition(editor);
+    int  firstPos = visibleRange.first;
+    int lastPos = visibleRange.second;
+    bool notCaseSensative = target.category() != QChar::Letter_Uppercase;
+    for (int offset = 1; cursorPos - offset >= firstPos || cursorPos + offset <= lastPos; offset++) {
+      if (cursorPos + offset <= lastPos) {
         QChar c = doc->characterAt(cursorPos + offset);
+        if (notCaseSensative) {
+          c = c.toLower();
+        }
         if (c == target) {
           m_targetPos << (cursorPos + offset);
         }
       }
       if (cursorPos - offset >= firstPos) {
-        QChar c = doc->characterAt(cursorPos - offset);
+        QChar c = doc->characterAt(cursorPos - offset).toLower();
+        if (notCaseSensative) {
+          c = c.toLower();
+        }
         if (c == target) {
           m_targetPos << (cursorPos - offset);
         }
@@ -103,80 +127,69 @@ public:
     }
   }
 
-  int size() const
-  {
+  int size() const {
     return m_targetPos.size();
   }
 
-  bool isEmpty() const
-  {
+  bool isEmpty() const {
     return m_targetPos.size() == 0;
   }
 
-  void nextGroup(void)
-  {
+  void nextGroup(void) {
     if (m_currentGroup + 1 < getGroupNum()) {
       m_currentGroup++;
     }
   }
 
-  void previousGroup(void)
-  {
+  void previousGroup(void) {
     if (m_currentGroup - 1 >= 0) {
       m_currentGroup--;
     }
   }
 
-  void clear()
-  {
+  void clear() {
     m_currentGroup = 0;
     m_targetPos.clear();
   }
 
-  int getFirstTargetIndex(void) const
-  {
-    return m_currentGroup * kGroupSize;
+  int getFirstTargetIndex(void) const {
+    return m_currentGroup * GroupSize;
   }
 
-  int getLastTargetIndex(void) const
-  {
-    int onePastLastIndex = m_currentGroup * kGroupSize + 62;
+  int getLastTargetIndex(void) const {
+    int onePastLastIndex = m_currentGroup * GroupSize + 62;
     if (onePastLastIndex > m_targetPos.size()) {
       onePastLastIndex = m_targetPos.size();
     }
     return onePastLastIndex;
   }
 
-  QPair<int, QChar> getTarget(int i) const
-  {
+  QPair<int, QChar> getTarget(int i) const {
     if (i < 0 || i > m_targetPos.size()) {
       return QPair<int, QChar>(int(-1), QChar(0));
     } else {
-      return QPair<int, QChar>(m_targetPos[i], m_code[i % kGroupSize]);
+      return QPair<int, QChar>(m_targetPos[i], m_code[i % GroupSize]);
     }
   }
 
-  int getGroupNum(void)
-  {
+  int getGroupNum(void) {
     if (m_targetPos.size() == 0) {
       return 0;
     } else {
-      return (m_targetPos.size() - 1) / kGroupSize + 1;
+      return (m_targetPos.size() - 1) / GroupSize + 1;
     }
   }
 
-  QChar getTargetChar(void) const
-  {
+  QChar getTargetChar(void) const {
     return m_targetChar;
   }
 
-  int getTargetPos(const QChar& c) const
-  {
+  int getTargetPos(const QChar& c) const {
     int pos = parseCode(c);
     if (pos < 0) {
       return pos;
     } else {
-      pos += m_currentGroup * kGroupSize;
+      pos += m_currentGroup * GroupSize;
       if (pos < m_targetPos.size()) {
         return m_targetPos[pos];
       } else {
@@ -187,21 +200,19 @@ public:
 
 
 private:
-  int parseCode(const QChar& c) const
-  {
+  int parseCode(const QChar& c) const {
     int index = -1;
     if (c.isLower()) {
-      index = kLowerCaseStart + c.unicode() - ushort('a');
+      index = LowerLetterCaseStart + c.unicode() - ushort('a');
     } else if (c.isDigit()) {
-      index = kDigitStart + c.unicode() - ushort('0');
+      index = DigitStart + c.unicode() - ushort('0');
     } else if (c.isUpper()) {
-      index = kUpperCaseStart + c.unicode() - ushort('A');
+      index = UpperLetterCaseStart + c.unicode() - ushort('A');
     }
     return index;
   }
 
-  void initCode(void)
-  {
+  void initCode(void) {
     m_code.reserve(62);
     for (int i = 0; i < 26; ++i) {
       m_code << QChar(i + 'a');
@@ -215,10 +226,10 @@ private:
   }
 
   enum {
-    kLowerCaseStart = 0,
-    kDigitStart = 26,
-    kUpperCaseStart = 36,
-    kGroupSize = 62
+    LowerLetterCaseStart = 0,
+    DigitStart = 26,
+    UpperLetterCaseStart = 36,
+    GroupSize = 62
   };
   int m_currentGroup;
   QChar m_targetChar;
@@ -228,8 +239,7 @@ private:
 
 #define EDITOR(e) ((m_plainEdit != NULL) ? m_plainEdit->e : m_textEdit->e)
 
-class EasyMotionHandler : public QObject
-{
+class EasyMotionHandler : public QObject {
   Q_OBJECT
 
 public:
@@ -239,14 +249,26 @@ public:
     , m_plainEdit(NULL)
     , m_textEdit(NULL)
     , m_state(DefaultState)
-  {
+    , m_easyMotionSearchRange(-1) {
   }
 
   ~EasyMotionHandler() {}
 
 public slots:
-  void easyMotionTriggered(void)
-  {
+  void easyMotionForCurrentLineTriggered(void) {
+    m_easyMotionSearchRange = CurrentLine;
+    initEasyMotion();
+    QKeyEvent event(QEvent::None, Qt::Key_0, Qt::NoModifier);
+    handleKeyPress(&event);
+  }
+
+  void easyMotionForEntireScreenTriggered(void) {
+    m_easyMotionSearchRange = EntireScreen;
+    initEasyMotion();
+  }
+
+private:
+  void initEasyMotion() {
     resetEasyMotion();
     m_currentEditor = EditorManager::currentEditor();
     if (setEditor(m_currentEditor)) {
@@ -259,28 +281,20 @@ public slots:
     }
   }
 
-private:
-  void resetEasyMotion(void)
-  {
+  void resetEasyMotion(void) {
     if (setEditor(m_currentEditor)) {
-        QWidget* viewport = EDITOR(viewport());
-        EDITOR(removeEventFilter(this));
-        viewport->removeEventFilter(this);
-        unsetEditor();
+      QWidget* viewport = EDITOR(viewport());
+      EDITOR(removeEventFilter(this));
+      viewport->removeEventFilter(this);
+      unsetEditor();
     }
     m_target.clear();
     m_state = DefaultState;
     m_currentEditor = NULL;
   }
 
-  bool eventFilter(QObject* obj, QEvent* event)
-  {
+  bool eventFilter(QObject* obj, QEvent* event) {
     QWidget* currentViewport = qobject_cast<QWidget*>(obj);
-//    if (event->type() == QEvent::KeyPress) {
-//        QMessageBox::information(Core::ICore::mainWindow(),
-//                                 tr("Action triggered"),
-//                                 tr("key"));
-//    }
     if (currentViewport != NULL
         && event->type() == QEvent::Paint)  {
       // Handle the painter event last to prevent
@@ -288,30 +302,28 @@ private:
       currentViewport->removeEventFilter(this);
       QCoreApplication::sendEvent(currentViewport, event);
       currentViewport->installEventFilter(this);
-      handlePaintEvent((QPaintEvent*) event);
+      QPaintEvent* paintEvent = static_cast<QPaintEvent*>(event);
+      handlePaintEvent(paintEvent);
       return true;
     } else if (event->type() == QEvent::KeyPress) {
       if (m_plainEdit || m_textEdit) {
-//        QMessageBox::information(Core::ICore::mainWindow(),
-//                                 tr("Action triggered"),
-//                                 tr("key"));
-        QKeyEvent* e = (QKeyEvent*) event;
+        //        QMessageBox::information(Core::ICore::mainWindow(),
+        //                                 tr("Action triggered"),
+        //                                 tr("key"));
+        QKeyEvent* e = static_cast<QKeyEvent*>(event);
         bool keyPressHandled = handleKeyPress(e);
         return keyPressHandled;
-      } else {
-        return false;
       }
     }  else if (event->type() == QEvent::ShortcutOverride) {
-        // Handle ESC key press.
-        QKeyEvent *e = static_cast<QKeyEvent*>(event);
-        if (e->key() == Qt::Key_Escape)
-            return handleKeyPress(e);
+      // Handle ESC key press.
+      QKeyEvent *e = static_cast<QKeyEvent*>(event);
+      if (e->key() == Qt::Key_Escape)
+        return handleKeyPress(e);
     }
     return false;
   }
 
-  bool handleKeyPress(QKeyEvent * e)
-  {
+  bool handleKeyPress(QKeyEvent * e) {
     if (e->key() == Qt::Key_Escape) {
       EasyMotionState tmpState = m_state;
       if (tmpState == WaitForInputTargetCode) {
@@ -324,13 +336,19 @@ private:
       target = target.toLower();
       if (e->modifiers() == Qt::ShiftModifier) target = target.toUpper();
       if (m_plainEdit) {
-        m_target.setTarget(m_plainEdit, target);
+        if (m_easyMotionSearchRange == EntireScreen) {
+          m_target.searchTargetFromScreen(m_plainEdit, target);
+        } else {
+          m_target.searchTargetFromCurrentLine(m_plainEdit);
+        }
       } else if (m_textEdit) {
-        m_target.setTarget(m_textEdit, target);
+        if (m_easyMotionSearchRange == EntireScreen) {
+          m_target.searchTargetFromScreen(m_textEdit, target);
+        } else {
+          m_target.searchTargetFromCurrentLine(m_textEdit);
+        }
       } else {
-        QMessageBox::information(Core::ICore::mainWindow(),
-                                 tr("EasyMotion Error"),
-                                 tr("current editor is null"));
+        qDebug() << "EasyMotionHandler::handleKeyPress() => Error: current editor is null";
       }
       if (!m_target.isEmpty()) {
         m_state = WaitForInputTargetCode;
@@ -340,8 +358,12 @@ private:
     } else if (m_state == WaitForInputTargetCode && !isModifierKey(e->key())) {
       if (e->key() == Qt::Key_Return) {
         if (e->modifiers() == Qt::ShiftModifier) {
+          // Shift + Enter makes EasyMotion show previous
+          // group of target positions
           m_target.previousGroup();
         } else {
+          // Enter makes EasyMotion show next
+          // group of target positions
           m_target.nextGroup();
         }
         EDITOR(viewport()->update());
@@ -351,7 +373,7 @@ private:
         if (e->modifiers() == Qt::ShiftModifier) target = target.toUpper();
         int newPos = m_target.getTargetPos(target);
         if (newPos >= 0) {
-          newPos++;
+          //          newPos++;
           QTextCursor cursor = EDITOR(textCursor());
           cursor.setPosition(newPos);
           EDITOR(setTextCursor(cursor));
@@ -364,18 +386,7 @@ private:
     return false;
   }
 
-  bool handlePaintEvent(QPaintEvent* e)
-  {
-    //    {
-    //      // Draw text cursor.
-    //      QRect rect = EDITOR(cursorRect());
-    //      if (e->rect().intersects(rect)) {
-    //        QPainter painter(EDITOR(viewport()));
-    //        rect.setWidth(EDITOR(cursorWidth()));
-    //        painter.setPen(EDITOR(palette().color(QPalette::Text)));
-    //        painter.drawRect(rect);
-    //      }
-    //    }
+  bool handlePaintEvent(QPaintEvent* e) {
     Q_UNUSED(e);
     if (m_state == WaitForInputTargetCode && !m_target.isEmpty()) {
       QTextCursor tc = EDITOR(textCursor());
@@ -392,11 +403,13 @@ private:
         tc.setPosition(target.first);
         QRect rect = EDITOR(cursorRect(tc));
         rect.setWidth(targetCharFontWidth);
+        setTextPosition(rect);
         if (rect.intersects(EDITOR(viewport()->rect()))) {
           painter.setPen(Qt::NoPen);
           painter.drawRect(rect);
           painter.setPen(pen);
-          painter.drawText(rect.left(), rect.bottom() - fm.descent(), QString(target.second));
+          int textHeight = rect.bottom() - fm.descent();
+          painter.drawText(rect.left(), textHeight, QString(target.second));
         }
       }
       painter.end();
@@ -404,16 +417,26 @@ private:
     return false;
   }
 
-  bool isModifierKey(int key)
-  {
+  void setTextPosition(QRect& rect) {
+    if (m_easyMotionSearchRange == CurrentLine) {
+      int textHeightOffset = EDITOR(cursorRect()).height();
+      rect.setTop(rect.top() - textHeightOffset);
+      rect.setBottom(rect.bottom() - textHeightOffset);
+      if (!rect.intersects(EDITOR(viewport()->rect()))) {
+        rect.setTop(rect.top() + 2 * textHeightOffset);
+        rect.setBottom(rect.bottom() + 2 * textHeightOffset);
+      }
+    }
+  }
+
+  bool isModifierKey(int key) {
     return key == Qt::Key_Control
            || key == Qt::Key_Shift
            || key == Qt::Key_Alt
            || key == Qt::Key_Meta;
   }
 
-  bool setEditor(Core::IEditor* e)
-  {
+  bool setEditor(Core::IEditor* e) {
     if (e == NULL) return false;
     QWidget* widget = e->widget();
     m_plainEdit = qobject_cast<QPlainTextEdit*>(widget);
@@ -421,8 +444,7 @@ private:
     return m_plainEdit != NULL || m_textEdit != NULL;
   }
 
-  void unsetEditor()
-  {
+  void unsetEditor() {
     m_plainEdit = NULL;
     m_textEdit = NULL;
   }
@@ -437,25 +459,29 @@ private:
   QTextEdit* m_textEdit;
   EasyMotionState m_state;
   EasyMotion::EasyMotionTarget m_target;
+  int m_easyMotionSearchRange;
+  enum SearchRange {
+    EntireScreen,
+    CurrentLine
+  };
+
+
 };
 
 } // namespace EasyMotion
 
 EasyMotionPlugin::EasyMotionPlugin()
-  : m_handler(new EasyMotionHandler)
-{
+  : m_handler(new EasyMotionHandler) {
   // Create your members
 }
 
-EasyMotionPlugin::~EasyMotionPlugin()
-{
+EasyMotionPlugin::~EasyMotionPlugin() {
   // Unregister objects from the plugin manager's object pool
   // Delete members
   delete m_handler;
 }
 
-bool EasyMotionPlugin::initialize(const QStringList &arguments, QString *errorString)
-{
+bool EasyMotionPlugin::initialize(const QStringList &arguments, QString *errorString) {
   // Register objects in the plugin manager's object pool
   // Load settings
   // Add actions to menus
@@ -464,23 +490,27 @@ bool EasyMotionPlugin::initialize(const QStringList &arguments, QString *errorSt
   // depends on have initialized their members.
   Q_UNUSED(arguments)
   Q_UNUSED(errorString)
-  QAction *action = new QAction(tr("Trigger EasyMotion"), this);
-  Core::Command *cmd = Core::ActionManager::registerAction(action, Constants::ACTION_ID,
-                                                           Core::Context(Core::Constants::C_GLOBAL));
-  cmd->setDefaultKeySequence(QKeySequence(tr("Ctrl+;")));
-  connect(action, SIGNAL(triggered()), m_handler, SLOT(easyMotionTriggered()));
+  QAction *easyMotionSearchEntireScreen = new QAction(tr("Search entire screen"), this);
+  Core::Command *searchScreenCmd = Core::ActionManager::registerAction(easyMotionSearchEntireScreen , Constants::SEARCH_SCREEN_ID,
+                                                                       Core::Context(Core::Constants::C_GLOBAL));
+  searchScreenCmd->setDefaultKeySequence(QKeySequence(tr("Ctrl+;")));
+  connect(easyMotionSearchEntireScreen , SIGNAL(triggered()), m_handler, SLOT(easyMotionForEntireScreenTriggered()));
+  //------------------------------------------------------------------------------
+  QAction *easyMotionSearchCurrentLine = new QAction(tr("Search current line"), this);
+  Core::Command *searchCurrentLineCmd = Core::ActionManager::registerAction(easyMotionSearchCurrentLine , Constants::SEARCH_LINE_ID,
+                                                                            Core::Context(Core::Constants::C_GLOBAL));
+  searchCurrentLineCmd->setDefaultKeySequence(QKeySequence(tr("Ctrl+'")));
+  connect(easyMotionSearchCurrentLine , SIGNAL(triggered()), m_handler, SLOT(easyMotionForCurrentLineTriggered()));
   return true;
 }
 
-void EasyMotionPlugin::extensionsInitialized()
-{
+void EasyMotionPlugin::extensionsInitialized() {
   // Retrieve objects from the plugin manager's object pool
   // In the extensionsInitialized function, a plugin can be sure that all
   // plugins that depend on it are completely initialized.
 }
 
-ExtensionSystem::IPlugin::ShutdownFlag EasyMotionPlugin::aboutToShutdown()
-{
+ExtensionSystem::IPlugin::ShutdownFlag EasyMotionPlugin::aboutToShutdown() {
   // Save settings
   // Disconnect from signals that are not needed during shutdown
   // Hide UI (if you add UI that is not in the main window directly)
