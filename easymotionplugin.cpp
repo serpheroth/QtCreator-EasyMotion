@@ -38,10 +38,10 @@ namespace EasyMotion
 {
 
 template <class Editor>
-QPair<int, int> getFirstAndLastVisiblePosition(Editor* editor)
+QPair<int, int> getFirstAndLastVisiblePosition(Editor *editor)
 {
   QTextCursor cursor = editor->textCursor();
-  QTextDocument* doc = editor->document();
+  QTextDocument *doc = editor->document();
   int currentLine = doc->findBlock(cursor.position()).blockNumber();
   int cursorHeight = editor->cursorRect().height();
   int lineCountToFirstVisibleLine = editor->cursorRect().top() / cursorHeight;
@@ -74,14 +74,14 @@ public:
   }
 
   template <class QEditor>
-  void searchTargetFromCurrentLine(QEditor* editor)
+  void searchTargetFromCurrentLine(QEditor *editor)
   {
     m_targetPos.clear();
     if (editor == NULL) {
       return;
     }
     m_currentGroup = 0;
-    QTextDocument* doc = editor->document();
+    QTextDocument *doc = editor->document();
     int cursorPos = editor->textCursor().position();
     QTextBlock currentLineBlock = doc->findBlock(cursorPos);
     int firstPos = currentLineBlock.position();
@@ -97,7 +97,7 @@ public:
   }
 
   template <class QEditor>
-  void searchTargetFromScreen(QEditor* editor, const QChar& target)
+  void searchTargetFromScreen(QEditor *editor, const QChar &target)
   {
     m_targetPos.clear();
     if (editor == NULL) {
@@ -105,7 +105,7 @@ public:
     }
     m_currentGroup = 0;
     m_targetChar = target;
-    QTextDocument* doc = editor->document();
+    QTextDocument *doc = editor->document();
     int cursorPos = editor->textCursor().position();
     QPair<int, int> visibleRange = getFirstAndLastVisiblePosition(editor);
     int  firstPos = visibleRange.first;
@@ -205,7 +205,7 @@ public:
     return m_targetChar;
   }
 
-  int getTargetPos(const QChar& c) const
+  int getTargetPos(const QChar &c) const
   {
     int pos = parseCode(c);
     if (pos < 0) {
@@ -222,7 +222,7 @@ public:
 
 
 private:
-  int parseCode(const QChar& c) const
+  int parseCode(const QChar &c) const
   {
     int index = -1;
     if (c.isLower()) {
@@ -268,7 +268,7 @@ class EasyMotionHandler : public QObject
   Q_OBJECT
 
 public:
-  EasyMotionHandler(QObject* parent = 0)
+  EasyMotionHandler(QObject *parent = 0)
     : QObject(parent)
     , m_currentEditor(NULL)
     , m_plainEdit(NULL)
@@ -295,16 +295,29 @@ public slots:
     initEasyMotion();
   }
 
+private slots:
+  void doInstallEventFilter()
+  {
+    if (m_plainEdit || m_textEdit) {
+      EDITOR(installEventFilter(this));
+      EDITOR(viewport())->installEventFilter(this);
+    }
+  }
+
 private:
+  void installEventFilter()
+  {
+    // Postpone installEventFilter() so plugin gets next key event first.
+    QMetaObject::invokeMethod(this, "doInstallEventFilter", Qt::QueuedConnection);
+  }
+
   void initEasyMotion()
   {
     resetEasyMotion();
     m_currentEditor = EditorManager::currentEditor();
     if (setEditor(m_currentEditor)) {
-      QWidget* viewport = EDITOR(viewport());
-      EDITOR(installEventFilter(this));
-      viewport->installEventFilter(this);
       m_state = EasyMotionTriggered;
+      installEventFilter();
     } else {
       m_currentEditor = NULL;
     }
@@ -313,7 +326,7 @@ private:
   void resetEasyMotion(void)
   {
     if (setEditor(m_currentEditor)) {
-      QWidget* viewport = EDITOR(viewport());
+      QWidget *viewport = EDITOR(viewport());
       EDITOR(removeEventFilter(this));
       viewport->removeEventFilter(this);
       unsetEditor();
@@ -323,9 +336,9 @@ private:
     m_currentEditor = NULL;
   }
 
-  bool eventFilter(QObject* obj, QEvent* event)
+  bool eventFilter(QObject *obj, QEvent *event)
   {
-    QWidget* currentViewport = qobject_cast<QWidget*>(obj);
+    QWidget *currentViewport = qobject_cast<QWidget *>(obj);
     if (currentViewport != NULL
         && event->type() == QEvent::Paint)  {
       // Handle the painter event last to prevent
@@ -333,7 +346,7 @@ private:
       currentViewport->removeEventFilter(this);
       QCoreApplication::sendEvent(currentViewport, event);
       currentViewport->installEventFilter(this);
-      QPaintEvent* paintEvent = static_cast<QPaintEvent*>(event);
+      QPaintEvent *paintEvent = static_cast<QPaintEvent *>(event);
       handlePaintEvent(paintEvent);
       return true;
     } else if (event->type() == QEvent::KeyPress) {
@@ -341,20 +354,22 @@ private:
         //        QMessageBox::information(Core::ICore::mainWindow(),
         //                                 tr("Action triggered"),
         //                                 tr("key"));
-        QKeyEvent* e = static_cast<QKeyEvent*>(event);
+        installEventFilter();
+        QKeyEvent *e = static_cast<QKeyEvent *>(event);
         bool keyPressHandled = handleKeyPress(e);
         return keyPressHandled;
       }
     }  else if (event->type() == QEvent::ShortcutOverride) {
+      installEventFilter();
       // Handle ESC key press.
-      QKeyEvent *e = static_cast<QKeyEvent*>(event);
+      QKeyEvent *e = static_cast<QKeyEvent *>(event);
       if (e->key() == Qt::Key_Escape)
         return handleKeyPress(e);
     }
     return false;
   }
 
-  bool handleKeyPress(QKeyEvent * e)
+  bool handleKeyPress(QKeyEvent *e)
   {
     if (e->key() == Qt::Key_Escape) {
       EasyMotionState tmpState = m_state;
@@ -418,7 +433,7 @@ private:
     return false;
   }
 
-  bool handlePaintEvent(QPaintEvent* e)
+  bool handlePaintEvent(QPaintEvent *e)
   {
     Q_UNUSED(e);
     if (m_state == WaitForInputTargetCode && !m_target.isEmpty()) {
@@ -451,7 +466,7 @@ private:
     return false;
   }
 
-  void setTextPosition(QRect& rect)
+  void setTextPosition(QRect &rect)
   {
     if (m_easyMotionSearchRange == CurrentLine) {
       int textHeightOffset = EDITOR(cursorRect()).height();
@@ -472,12 +487,12 @@ private:
            || key == Qt::Key_Meta;
   }
 
-  bool setEditor(Core::IEditor* e)
+  bool setEditor(Core::IEditor *e)
   {
     if (e == NULL) return false;
-    QWidget* widget = e->widget();
-    m_plainEdit = qobject_cast<QPlainTextEdit*>(widget);
-    m_textEdit = qobject_cast<QTextEdit*>(widget);
+    QWidget *widget = e->widget();
+    m_plainEdit = qobject_cast<QPlainTextEdit *>(widget);
+    m_textEdit = qobject_cast<QTextEdit *>(widget);
     return m_plainEdit != NULL || m_textEdit != NULL;
   }
 
@@ -492,9 +507,9 @@ private:
     EasyMotionTriggered,
     WaitForInputTargetCode
   };
-  Core::IEditor* m_currentEditor;
-  QPlainTextEdit* m_plainEdit;
-  QTextEdit* m_textEdit;
+  Core::IEditor *m_currentEditor;
+  QPlainTextEdit *m_plainEdit;
+  QTextEdit *m_textEdit;
   EasyMotionState m_state;
   EasyMotion::EasyMotionTarget m_target;
   int m_easyMotionSearchRange;

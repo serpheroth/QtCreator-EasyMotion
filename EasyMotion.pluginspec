@@ -5,7 +5,7 @@
     <description>Put a short description of your plugin here</description>
     <url>http://www.mycompany.com</url>
     <dependencyList>
- <dependency name="Core" version="2.8.1"/>
- </dependencyList>
+        <dependency name="Core" version="3.0.1"/>
+    </dependencyList>
 </plugin>
 
