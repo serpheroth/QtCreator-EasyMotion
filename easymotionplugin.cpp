@@ -34,10 +34,12 @@ using namespace EasyMotion::Internal;
 using namespace EasyMotion;
 using namespace Core;
 
-namespace EasyMotion {
+namespace EasyMotion
+{
 
 template <class Editor>
-QPair<int, int> getFirstAndLastVisiblePosition(Editor* editor) {
+QPair<int, int> getFirstAndLastVisiblePosition(Editor* editor)
+{
   QTextCursor cursor = editor->textCursor();
   QTextDocument* doc = editor->document();
   int currentLine = doc->findBlock(cursor.position()).blockNumber();
@@ -61,16 +63,19 @@ QPair<int, int> getFirstAndLastVisiblePosition(Editor* editor) {
   return QPair<int, int>(firstPos, lastPos);
 }
 
-class EasyMotionTarget : public QObject {
+class EasyMotionTarget : public QObject
+{
   Q_OBJECT
 public:
-  EasyMotionTarget(void) {
+  EasyMotionTarget(void)
+  {
     initCode();
     m_targetPos.clear();
   }
 
   template <class QEditor>
-  void searchTargetFromCurrentLine(QEditor* editor) {
+  void searchTargetFromCurrentLine(QEditor* editor)
+  {
     m_targetPos.clear();
     if (editor == NULL) {
       return;
@@ -92,7 +97,8 @@ public:
   }
 
   template <class QEditor>
-  void searchTargetFromScreen(QEditor* editor, const QChar& target) {
+  void searchTargetFromScreen(QEditor* editor, const QChar& target)
+  {
     m_targetPos.clear();
     if (editor == NULL) {
       return;
@@ -127,36 +133,48 @@ public:
     }
   }
 
-  int size() const {
+  int size() const
+  {
     return m_targetPos.size();
   }
 
-  bool isEmpty() const {
+  bool isEmpty() const
+  {
     return m_targetPos.size() == 0;
   }
 
-  void nextGroup(void) {
-    if (m_currentGroup + 1 < getGroupNum()) {
-      m_currentGroup++;
+  void nextGroup(void)
+  {
+    m_currentGroup++;
+    if (m_currentGroup >= getGroupNum()) {
+      m_currentGroup = 0;
     }
   }
 
-  void previousGroup(void) {
-    if (m_currentGroup - 1 >= 0) {
-      m_currentGroup--;
+  void previousGroup(void)
+  {
+    m_currentGroup--;
+    if (m_currentGroup  < 0) {
+      m_currentGroup = getGroupNum() - 1;
+      if (m_currentGroup < 0) {
+        m_currentGroup = 0;
+      }
     }
   }
 
-  void clear() {
+  void clear()
+  {
     m_currentGroup = 0;
     m_targetPos.clear();
   }
 
-  int getFirstTargetIndex(void) const {
+  int getFirstTargetIndex(void) const
+  {
     return m_currentGroup * GroupSize;
   }
 
-  int getLastTargetIndex(void) const {
+  int getLastTargetIndex(void) const
+  {
     int onePastLastIndex = m_currentGroup * GroupSize + 62;
     if (onePastLastIndex > m_targetPos.size()) {
       onePastLastIndex = m_targetPos.size();
@@ -164,7 +182,8 @@ public:
     return onePastLastIndex;
   }
 
-  QPair<int, QChar> getTarget(int i) const {
+  QPair<int, QChar> getTarget(int i) const
+  {
     if (i < 0 || i > m_targetPos.size()) {
       return QPair<int, QChar>(int(-1), QChar(0));
     } else {
@@ -172,7 +191,8 @@ public:
     }
   }
 
-  int getGroupNum(void) {
+  int getGroupNum(void)
+  {
     if (m_targetPos.size() == 0) {
       return 0;
     } else {
@@ -180,11 +200,13 @@ public:
     }
   }
 
-  QChar getTargetChar(void) const {
+  QChar getTargetChar(void) const
+  {
     return m_targetChar;
   }
 
-  int getTargetPos(const QChar& c) const {
+  int getTargetPos(const QChar& c) const
+  {
     int pos = parseCode(c);
     if (pos < 0) {
       return pos;
@@ -200,7 +222,8 @@ public:
 
 
 private:
-  int parseCode(const QChar& c) const {
+  int parseCode(const QChar& c) const
+  {
     int index = -1;
     if (c.isLower()) {
       index = LowerLetterCaseStart + c.unicode() - ushort('a');
@@ -212,7 +235,8 @@ private:
     return index;
   }
 
-  void initCode(void) {
+  void initCode(void)
+  {
     m_code.reserve(62);
     for (int i = 0; i < 26; ++i) {
       m_code << QChar(i + 'a');
@@ -239,7 +263,8 @@ private:
 
 #define EDITOR(e) ((m_plainEdit != NULL) ? m_plainEdit->e : m_textEdit->e)
 
-class EasyMotionHandler : public QObject {
+class EasyMotionHandler : public QObject
+{
   Q_OBJECT
 
 public:
@@ -249,26 +274,30 @@ public:
     , m_plainEdit(NULL)
     , m_textEdit(NULL)
     , m_state(DefaultState)
-    , m_easyMotionSearchRange(-1) {
+    , m_easyMotionSearchRange(-1)
+  {
   }
 
   ~EasyMotionHandler() {}
 
 public slots:
-  void easyMotionForCurrentLineTriggered(void) {
+  void easyMotionForCurrentLineTriggered(void)
+  {
     m_easyMotionSearchRange = CurrentLine;
     initEasyMotion();
     QKeyEvent event(QEvent::None, Qt::Key_0, Qt::NoModifier);
     handleKeyPress(&event);
   }
 
-  void easyMotionForEntireScreenTriggered(void) {
+  void easyMotionForEntireScreenTriggered(void)
+  {
     m_easyMotionSearchRange = EntireScreen;
     initEasyMotion();
   }
 
 private:
-  void initEasyMotion() {
+  void initEasyMotion()
+  {
     resetEasyMotion();
     m_currentEditor = EditorManager::currentEditor();
     if (setEditor(m_currentEditor)) {
@@ -281,7 +310,8 @@ private:
     }
   }
 
-  void resetEasyMotion(void) {
+  void resetEasyMotion(void)
+  {
     if (setEditor(m_currentEditor)) {
       QWidget* viewport = EDITOR(viewport());
       EDITOR(removeEventFilter(this));
@@ -293,7 +323,8 @@ private:
     m_currentEditor = NULL;
   }
 
-  bool eventFilter(QObject* obj, QEvent* event) {
+  bool eventFilter(QObject* obj, QEvent* event)
+  {
     QWidget* currentViewport = qobject_cast<QWidget*>(obj);
     if (currentViewport != NULL
         && event->type() == QEvent::Paint)  {
@@ -323,7 +354,8 @@ private:
     return false;
   }
 
-  bool handleKeyPress(QKeyEvent * e) {
+  bool handleKeyPress(QKeyEvent * e)
+  {
     if (e->key() == Qt::Key_Escape) {
       EasyMotionState tmpState = m_state;
       if (tmpState == WaitForInputTargetCode) {
@@ -386,12 +418,12 @@ private:
     return false;
   }
 
-  bool handlePaintEvent(QPaintEvent* e) {
+  bool handlePaintEvent(QPaintEvent* e)
+  {
     Q_UNUSED(e);
     if (m_state == WaitForInputTargetCode && !m_target.isEmpty()) {
       QTextCursor tc = EDITOR(textCursor());
       QFontMetrics fm(EDITOR(font()));
-      int targetCharFontWidth = fm.width(m_target.getTargetChar());
       QPainter painter(EDITOR(viewport()));
       QPen pen;
       pen.setColor(QColor(255, 0, 0, 255));
@@ -402,9 +434,11 @@ private:
         QPair<int, QChar> target = m_target.getTarget(i);
         tc.setPosition(target.first);
         QRect rect = EDITOR(cursorRect(tc));
+        int targetCharFontWidth = fm.width(EDITOR(document())->characterAt(target.first));
+        if (targetCharFontWidth == 0) targetCharFontWidth = fm.width(QChar(ushort(' ')));
         rect.setWidth(targetCharFontWidth);
-        setTextPosition(rect);
         if (rect.intersects(EDITOR(viewport()->rect()))) {
+          setTextPosition(rect);
           painter.setPen(Qt::NoPen);
           painter.drawRect(rect);
           painter.setPen(pen);
@@ -417,7 +451,8 @@ private:
     return false;
   }
 
-  void setTextPosition(QRect& rect) {
+  void setTextPosition(QRect& rect)
+  {
     if (m_easyMotionSearchRange == CurrentLine) {
       int textHeightOffset = EDITOR(cursorRect()).height();
       rect.setTop(rect.top() - textHeightOffset);
@@ -429,14 +464,16 @@ private:
     }
   }
 
-  bool isModifierKey(int key) {
+  bool isModifierKey(int key)
+  {
     return key == Qt::Key_Control
            || key == Qt::Key_Shift
            || key == Qt::Key_Alt
            || key == Qt::Key_Meta;
   }
 
-  bool setEditor(Core::IEditor* e) {
+  bool setEditor(Core::IEditor* e)
+  {
     if (e == NULL) return false;
     QWidget* widget = e->widget();
     m_plainEdit = qobject_cast<QPlainTextEdit*>(widget);
@@ -444,7 +481,8 @@ private:
     return m_plainEdit != NULL || m_textEdit != NULL;
   }
 
-  void unsetEditor() {
+  void unsetEditor()
+  {
     m_plainEdit = NULL;
     m_textEdit = NULL;
   }
@@ -471,17 +509,20 @@ private:
 } // namespace EasyMotion
 
 EasyMotionPlugin::EasyMotionPlugin()
-  : m_handler(new EasyMotionHandler) {
+  : m_handler(new EasyMotionHandler)
+{
   // Create your members
 }
 
-EasyMotionPlugin::~EasyMotionPlugin() {
+EasyMotionPlugin::~EasyMotionPlugin()
+{
   // Unregister objects from the plugin manager's object pool
   // Delete members
   delete m_handler;
 }
 
-bool EasyMotionPlugin::initialize(const QStringList &arguments, QString *errorString) {
+bool EasyMotionPlugin::initialize(const QStringList &arguments, QString *errorString)
+{
   // Register objects in the plugin manager's object pool
   // Load settings
   // Add actions to menus
@@ -492,25 +533,27 @@ bool EasyMotionPlugin::initialize(const QStringList &arguments, QString *errorSt
   Q_UNUSED(errorString)
   QAction *easyMotionSearchEntireScreen = new QAction(tr("Search entire screen"), this);
   Core::Command *searchScreenCmd = Core::ActionManager::registerAction(easyMotionSearchEntireScreen , Constants::SEARCH_SCREEN_ID,
-                                                                       Core::Context(Core::Constants::C_GLOBAL));
+                                   Core::Context(Core::Constants::C_GLOBAL));
   searchScreenCmd->setDefaultKeySequence(QKeySequence(tr("Ctrl+;")));
   connect(easyMotionSearchEntireScreen , SIGNAL(triggered()), m_handler, SLOT(easyMotionForEntireScreenTriggered()));
   //------------------------------------------------------------------------------
   QAction *easyMotionSearchCurrentLine = new QAction(tr("Search current line"), this);
   Core::Command *searchCurrentLineCmd = Core::ActionManager::registerAction(easyMotionSearchCurrentLine , Constants::SEARCH_LINE_ID,
-                                                                            Core::Context(Core::Constants::C_GLOBAL));
+                                        Core::Context(Core::Constants::C_GLOBAL));
   searchCurrentLineCmd->setDefaultKeySequence(QKeySequence(tr("Ctrl+'")));
   connect(easyMotionSearchCurrentLine , SIGNAL(triggered()), m_handler, SLOT(easyMotionForCurrentLineTriggered()));
   return true;
 }
 
-void EasyMotionPlugin::extensionsInitialized() {
+void EasyMotionPlugin::extensionsInitialized()
+{
   // Retrieve objects from the plugin manager's object pool
   // In the extensionsInitialized function, a plugin can be sure that all
   // plugins that depend on it are completely initialized.
 }
 
-ExtensionSystem::IPlugin::ShutdownFlag EasyMotionPlugin::aboutToShutdown() {
+ExtensionSystem::IPlugin::ShutdownFlag EasyMotionPlugin::aboutToShutdown()
+{
   // Save settings
   // Disconnect from signals that are not needed during shutdown
   // Hide UI (if you add UI that is not in the main window directly)
@@ -519,5 +562,7 @@ ExtensionSystem::IPlugin::ShutdownFlag EasyMotionPlugin::aboutToShutdown() {
 
 #include "easymotionplugin.moc"
 Q_EXPORT_PLUGIN2(EasyMotion, EasyMotionPlugin)
+
+
 
 
