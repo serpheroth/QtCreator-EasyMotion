@@ -63,6 +63,28 @@ QPair<int, int> getFirstAndLastVisiblePosition(Editor *editor)
   return QPair<int, int>(firstPos, lastPos);
 }
 
+template <class Editor>
+void moveToPosition(Editor *editor, int newPos)
+{
+    QTextBlock targetBlock = editor->document()->findBlock(newPos);
+    if (!targetBlock.isValid())
+        targetBlock = editor->document()->lastBlock();
+
+    bool overwriteMode = editor->overwriteMode();
+
+    int down = targetBlock.blockNumber() - editor->textCursor().block().blockNumber();
+    QKeyEvent event(QEvent::KeyPress, down > 0 ? Qt::Key_Down : Qt::Key_Up, Qt::NoModifier);
+    down = qAbs(down) + 1;
+    while (--down > 0)
+        QCoreApplication::sendEvent(editor, &event);
+
+    int right = newPos - editor->textCursor().position();
+    event = QKeyEvent(QEvent::KeyPress, right > 0 ? Qt::Key_Right : Qt::Key_Left, Qt::NoModifier);
+    right = qAbs(right) + (overwriteMode ? 1 : (right > 0 ? 2 : 0));
+    while (--right > 0)
+        QCoreApplication::sendEvent(editor, &event);
+}
+
 class EasyMotionTarget : public QObject
 {
   Q_OBJECT
@@ -420,12 +442,14 @@ private:
         if (e->modifiers() == Qt::ShiftModifier) target = target.toUpper();
         int newPos = m_target.getTargetPos(target);
         if (newPos >= 0) {
-          //          newPos++;
-          QTextCursor cursor = EDITOR(textCursor());
-          cursor.setPosition(newPos);
-          EDITOR(setTextCursor(cursor));
-          EDITOR(viewport()->update());
+          QPlainTextEdit* plainEdit = m_plainEdit;
+          QTextEdit* textEdit = m_textEdit;
           resetEasyMotion();
+          if (plainEdit)
+              moveToPosition(plainEdit, newPos);
+          else if (textEdit)
+              moveToPosition(textEdit, newPos);
+          EDITOR(viewport())->update();
         }
       }
       return true;
