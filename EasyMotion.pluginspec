@@ -6,6 +6,7 @@
     <url>http://www.mycompany.com</url>
     <dependencyList>
         <dependency name="Core" version="3.0.1"/>
+        <dependency name="TextEditor" version="3.0.1"/>
     </dependencyList>
 </plugin>
 

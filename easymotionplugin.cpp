@@ -20,6 +20,8 @@
 #include <QObject>
 #include <QApplication>
 #include <QPlainTextEdit>
+#include <QLabel>
+#include <QStatusBar>
 #include <QDebug>
 #include <QPainter>
 #include <QString>
@@ -64,25 +66,33 @@ QPair<int, int> getFirstAndLastVisiblePosition(Editor *editor)
 }
 
 template <class Editor>
-void moveToPosition(Editor *editor, int newPos)
+void moveToPosition(Editor *editor, int newPos, bool visualMode)
 {
     QTextBlock targetBlock = editor->document()->findBlock(newPos);
     if (!targetBlock.isValid())
         targetBlock = editor->document()->lastBlock();
 
     bool overwriteMode = editor->overwriteMode();
+    TextEditor::BaseTextEditorWidget *baseEditor =
+            qobject_cast<TextEditor::BaseTextEditorWidget*>(editor);
+    bool visualBlockMode = baseEditor && baseEditor->hasBlockSelection();
 
-    int down = targetBlock.blockNumber() - editor->textCursor().block().blockNumber();
-    QKeyEvent event(QEvent::KeyPress, down > 0 ? Qt::Key_Down : Qt::Key_Up, Qt::NoModifier);
-    down = qAbs(down) + 1;
-    while (--down > 0)
-        QCoreApplication::sendEvent(editor, &event);
+    bool selectNextCharacter = (overwriteMode || visualMode) && !visualBlockMode;
+    bool keepSelection = visualMode || visualBlockMode;
 
-    int right = newPos - editor->textCursor().position();
-    event = QKeyEvent(QEvent::KeyPress, right > 0 ? Qt::Key_Right : Qt::Key_Left, Qt::NoModifier);
-    right = qAbs(right) + (overwriteMode ? 1 : (right > 0 ? 2 : 0));
-    while (--right > 0)
-        QCoreApplication::sendEvent(editor, &event);
+    QTextCursor textCursor = editor->textCursor();
+    textCursor.setPosition(selectNextCharacter ? newPos : newPos + 1,
+                           keepSelection ? QTextCursor::KeepAnchor : QTextCursor::MoveAnchor);
+
+    if (baseEditor)
+        baseEditor->setTextCursor(textCursor);
+    else
+        editor->setTextCursor(textCursor);
+
+    if (visualBlockMode) {
+        baseEditor->setBlockSelection(false);
+        baseEditor->setBlockSelection(true);
+    }
 }
 
 class EasyMotionTarget : public QObject
@@ -295,9 +305,11 @@ public:
     , m_currentEditor(NULL)
     , m_plainEdit(NULL)
     , m_textEdit(NULL)
+    , m_fakeVimStatusWidget(0)
     , m_state(DefaultState)
     , m_easyMotionSearchRange(-1)
   {
+      QMetaObject::invokeMethod(this, "findFakeVimStatusWidget", Qt::QueuedConnection);
   }
 
   ~EasyMotionHandler() {}
@@ -324,6 +336,17 @@ private slots:
       EDITOR(installEventFilter(this));
       EDITOR(viewport())->installEventFilter(this);
     }
+  }
+
+  void findFakeVimStatusWidget()
+  {
+      QWidget *statusBar = Core::ICore::statusBar();
+      foreach (QWidget *w, statusBar->findChildren<QWidget*>()) {
+          if (QLatin1String(w->metaObject()->className()) == QLatin1String("FakeVim::Internal::MiniBuffer")) {
+              m_fakeVimStatusWidget = w->findChild<QLabel*>();
+              break;
+          }
+      }
   }
 
 private:
@@ -356,6 +379,13 @@ private:
     m_target.clear();
     m_state = DefaultState;
     m_currentEditor = NULL;
+  }
+
+  bool isVisualMode() const
+  {
+      if (m_fakeVimStatusWidget)
+          return m_fakeVimStatusWidget->text().contains(QLatin1String("VISUAL"));
+      return (m_plainEdit || m_textEdit) && EDITOR(textCursor()).hasSelection();
   }
 
   bool eventFilter(QObject *obj, QEvent *event)
@@ -444,12 +474,13 @@ private:
         if (newPos >= 0) {
           QPlainTextEdit* plainEdit = m_plainEdit;
           QTextEdit* textEdit = m_textEdit;
+          QWidget *viewport = EDITOR(viewport());
           resetEasyMotion();
           if (plainEdit)
-              moveToPosition(plainEdit, newPos);
+              moveToPosition(plainEdit, newPos, isVisualMode());
           else if (textEdit)
-              moveToPosition(textEdit, newPos);
-          EDITOR(viewport())->update();
+              moveToPosition(textEdit, newPos, isVisualMode());
+          viewport->update();
         }
       }
       return true;
@@ -534,6 +565,7 @@ private:
   Core::IEditor *m_currentEditor;
   QPlainTextEdit *m_plainEdit;
   QTextEdit *m_textEdit;
+  QLabel *m_fakeVimStatusWidget;
   EasyMotionState m_state;
   EasyMotion::EasyMotionTarget m_target;
   int m_easyMotionSearchRange;
