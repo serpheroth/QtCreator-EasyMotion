@@ -1,9 +1,9 @@
 <plugin name=\"EasyMotion\" version=\"0.0.1\" compatVersion=\"0.0.1\">
-    <vendor>MyCompany</vendor>
-    <copyright>(C) MyCompany</copyright>
-    <license>Put your license text here</license>
-    <description>Put a short description of your plugin here</description>
-    <url>http://www.mycompany.com</url>
+    <vendor>Xiaofeng Wu</vendor>
+    <copyright>(C) Xiaofeng Wu</copyright>
+    <license>Same as QtCreator</license>
+    <description>EasyMoiton plugin similar to the VIM EasyMotion plugin</description>
+    <url>https://github.com/serpheroth/QtCreator-EasyMotion</url>
     $$dependencyList
 </plugin>
 

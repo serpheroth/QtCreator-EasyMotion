@@ -1,4 +1,5 @@
 DEFINES += EASYMOTION_LIBRARY
+DIR="/Users/dj/qt-creator-opensource-src-3.2.1"
 
 # EasyMotion files
 
@@ -8,14 +9,6 @@ HEADERS += easymotionplugin.h \
         easymotion_global.h \
         easymotionconstants.h
 
-# Qt Creator linking
-
-mac {
-	DIR="/Users/dj/tmp/qtcreator-3.0"
-} else {
-	USER_NAME = $$system(whoami)
-	DIR="/home/xwu/test/qt-creator-2.8.1-src"
-}
 ## set the QTC_SOURCE environment variable to override the setting here
 QTCREATOR_SOURCES = $$(QTC_SOURCE)
 isEmpty(QTCREATOR_SOURCES):QTCREATOR_SOURCES="$$DIR"
