@@ -8,7 +8,7 @@
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/coreconstants.h>
-#include <texteditor/basetexteditor.h>
+#include <texteditor/texteditor.h>
 #include <extensionsystem/pluginmanager.h>
 #include <QListWidget>
 #include <QAction>
@@ -73,8 +73,8 @@ void moveToPosition(Editor *editor, int newPos, bool visualMode)
         targetBlock = editor->document()->lastBlock();
 
     bool overwriteMode = editor->overwriteMode();
-    TextEditor::BaseTextEditorWidget *baseEditor =
-            qobject_cast<TextEditor::BaseTextEditorWidget*>(editor);
+    TextEditor::TextEditorWidget *baseEditor =
+            qobject_cast<TextEditor::TextEditorWidget*>(editor);
     bool visualBlockMode = baseEditor && baseEditor->hasBlockSelection();
 
     bool selectNextCharacter = (overwriteMode || visualMode) && !visualBlockMode;
@@ -632,7 +632,7 @@ ExtensionSystem::IPlugin::ShutdownFlag EasyMotionPlugin::aboutToShutdown()
 }
 
 #include "easymotionplugin.moc"
-Q_EXPORT_PLUGIN2(EasyMotion, EasyMotionPlugin)
+//Q_EXPORT_PLUGIN2(EasyMotion, EasyMotionPlugin)
 
 
 

@@ -1,9 +1,0 @@
-<plugin name=\"EasyMotion\" version=\"0.0.1\" compatVersion=\"0.0.1\">
-    <vendor>Xiaofeng Wu</vendor>
-    <copyright>(C) Xiaofeng Wu</copyright>
-    <license>Same as QtCreator</license>
-    <description>EasyMoiton plugin similar to the VIM EasyMotion plugin</description>
-    <url>https://github.com/serpheroth/QtCreator-EasyMotion</url>
-    $$dependencyList
-</plugin>
-
