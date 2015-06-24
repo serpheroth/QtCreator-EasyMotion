@@ -154,7 +154,7 @@ public:
         }
       }
       if (cursorPos - offset >= firstPos) {
-        QChar c = doc->characterAt(cursorPos - offset).toLower();
+        QChar c = doc->characterAt(cursorPos - offset);
         if (notCaseSensative) {
           c = c.toLower();
         }
