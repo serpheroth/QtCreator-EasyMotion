@@ -1,5 +1,5 @@
 DEFINES += EASYMOTION_LIBRARY
-DIR="/Users/dj/qt-creator-opensource-src-3.3.0"
+#DIR="/Users/dj/qt-creator-opensource-src-3.3.0"
 
 # EasyMotion files
 
